@@ -4,11 +4,11 @@ Wave XLR does not have an official support on Linux at this time (24/11/2024) - 
 
 However, because Wave XLR is recognized by the system as a standard USB audio device, some of its functionality seems to be accessible on Linux.
 
-This README documents my experience with getting the device to work on my machine.
+This README details my experience with getting the device to work on my machine.
 
 > **Disclaimer**: The instructions and information on this page are unofficial and not endorsed or supported by device manufacturer - Elgato. 
 > The content of this page is based on my personal experience and may not work in all cases.
-> I cannot guarantee their accuracy or reliability. Use at your own risk. No warranties or guarantees, express or implied, are provided.
+> I cannot guarantee the accuracy or reliability of the information provided. Use at your own risk. No warranties or guarantees, express or implied, are provided.
 
 ## Issues
 
