@@ -23,7 +23,7 @@ Here are the posts of people that had the same issue:
 
 After some trial and error, I found that the issue is most likely not related to [pipewire](https://pipewire.org/) and is more lower-level. It's reproducible with playback and recording from raw ALSA devices without pipewire or pulseaudio running.
 
-When you start playing an audio and then initiate recording from the microphone, there is no signal from the microphone. However, when the process is reversed, starting the recording first than playback, everything seems to work fine.
+If you start playing an audio and then initiate recording from the microphone, there is no signal detected from the microphone. However, when the process is reversed, starting the recording first than playback, everything seems to work fine.
 
 #### The workaround
 
