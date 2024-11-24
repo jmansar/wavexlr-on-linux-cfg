@@ -32,7 +32,7 @@ The idea is to start the microphone recording before any use of the device outpu
 
 These instructions assume that your Linux distribution use [pipewire](https://pipewire.org/), [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) and [systemd](https://systemd.io/).
 
-1. Create custom device nodes for Wave XLR in pipewire configuration. 
+##### Step 1. Create custom device nodes for Wave XLR in pipewire configuration. 
 
 File `~/.config/pipewire/pipewire.conf.d/wavexlr.conf`:
 ```
@@ -64,7 +64,7 @@ context.objects = [
 ]
 ```
 
-1. Disable auto discovered Wave XLR device in wireplumber. 
+##### Step 2. Disable auto discovered Wave XLR device in wireplumber. 
 
 File `~/.config/wireplumber/wireplumber.conf.d/wavexlr.conf`:
 ```
@@ -84,7 +84,7 @@ monitor.alsa.rules = [
 ]
 ```
 
-1. Create a script to start audio recording and make it executable.
+##### Step 3. Create a script to start audio recording and make it executable.
 
 File `~/scripts/wavexlr-record.sh`:
 ```sh
@@ -114,7 +114,7 @@ done
 chmod +x ~/scripts/wavexlr-record.sh 
 ```
 
-1. Create systemd service unit to launch the record script.
+##### Step 4. Create systemd service unit to launch the record script.
 
 File `~/.config/systemd/user/pipewire-wavexlr-workaround.service`:
 ```
@@ -126,7 +126,7 @@ ExecStart=bash "%h/scripts/wavexlr-record.sh"
 ExecStartPost=/bin/sleep 1
 ```
 
-1. Create systemd service override for pipewire.
+##### Step 5. Create systemd service override for pipewire.
 
 File `~/.config/systemd/user/pipewire.socket.d/override.conf`:
 ```
@@ -144,9 +144,6 @@ One side effect of this approach is that a desktop environment reports microphon
 
 There is likely a better way to achieve this behaviour. Please feel free to raise an issue on this repository if you would like to suggest an improvement.
 
-What did not work:
-* Stopping the recording after the initial launch.
-The microphone eventually stops functioning if the recording gets stopped.
-
-* Rely on wireplumber to initialize devices.
-I found this workaround not working most of the time when the device is handled by wireplumber.
+What did **not** work:
+- Stopping the recording after the initial launch. The microphone eventually stops functioning if the recording gets stopped.
+- Rely on wireplumber to initialize devices. The workaround does not work most of the time when the device setup is managed by wireplumber.
