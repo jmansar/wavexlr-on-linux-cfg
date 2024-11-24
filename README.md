@@ -28,7 +28,7 @@ If you start playing an audio and then initiate recording from the microphone, t
 #### The workaround
 
 The following workaround is not a proper fix for the problem, but makes the device usable with both headphones and microphone working.
-The idea is to start the microphone recording before any use of the device output sinks. 
+The idea is to start the microphone recording before any use of the device output sink. 
 
 These instructions assume that your Linux distribution use [pipewire](https://pipewire.org/), [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) and [systemd](https://systemd.io/).
 
