@@ -28,122 +28,27 @@ If you start playing an audio and then initiate recording from the microphone, t
 #### The workaround
 
 The following workaround is not a proper fix for the problem, but makes the device usable with both headphones and microphone working.
-The idea is to start the microphone recording before any use of the device output sink. 
+The idea is to start the microphone capture before any use of the device output sink. 
 
-These instructions assume that your Linux distribution use [pipewire](https://pipewire.org/), [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) and [systemd](https://systemd.io/).
+These instructions assume that your Linux distribution use [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/).
 
-##### Step 1. Create custom device nodes for Wave XLR in pipewire configuration. 
+##### Step 1. Disable autoconfigured sink (playback) node for Wave XLR device in wireplumber. Define custom lua script to execute.
 
-File `~/.config/pipewire/pipewire.conf.d/wavexlr.conf`:
-```
-context.objects = [
-    { factory = adapter
-        args = {
-            factory.name           = api.alsa.pcm.source
-            node.name              = "custom-wavexlr-mic"
-            node.description       = "WaveXLR Mic"
-            media.class            = "Audio/Source"
-            api.alsa.path          = "hw:XLR,0"
-            priority.driver        = 2000
-            priority.session       = 2000
-            node.driver            = true
-        }
-    }
-    { factory = adapter
-        args = {
-            factory.name           = api.alsa.pcm.sink
-            node.name              = "custom-wavexlr-sink"
-            node.description       = "WaveXLR Headphones"
-            media.class            = "Audio/Sink"
-            api.alsa.path          = "hw:XLR,0"
-            alsa.resolution_bits   = 24
-            audio.channels         = 2
-            audio.position         = "FL,FR"
-        }
-    }
-]
-```
+Create file [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/51-wavexlr.conf)
 
-##### Step 2. Disable auto discovered Wave XLR device in wireplumber. 
+##### Step 2. Create custom wireplumber script.
 
-File `~/.config/wireplumber/wireplumber.conf.d/wavexlr.conf`:
-```
-monitor.alsa.rules = [
-  {
-    matches = [
-      {
-        device.name = "~alsa_card.usb-Elgato_Systems_Elgato_Wave_XLR_*"
-      }
-    ]
-    actions = {
-      update-props = {
-        device.disabled = true
-      }
-    }
-  }
-]
-```
-
-##### Step 3. Create a script to start audio recording and make it executable.
-
-File `~/scripts/wavexlr-record.sh`:
-```sh
-#!/bin/bash
-
-RECORD=true
-
-_term() { 
-  RECORD=false
-  echo "Terminating recording" 
-  kill -TERM "$PID" 2>/dev/null
-}
-
-trap _term SIGTERM
-
-while $RECORD
-do
-    echo "Attempt record from microphone" 
-    pw-record --target "custom-wavexlr-mic" /dev/null &
-    PID=$!
-
-    wait "$PID"
-done
-```
-
-```
-chmod +x ~/scripts/wavexlr-record.sh 
-```
-
-##### Step 4. Create systemd service unit to launch the record script.
-
-File `~/.config/systemd/user/pipewire-wavexlr-workaround.service`:
-```
-[Unit]
-Description=WaveXLR mic issue workaround
-
-[Service]
-ExecStart=bash "%h/scripts/wavexlr-record.sh"
-ExecStartPost=/bin/sleep 1
-```
-
-##### Step 5. Create systemd service override for pipewire.
-
-File `~/.config/systemd/user/pipewire.socket.d/override.conf`:
-```
-[Unit]
-Requires=pipewire-wavexlr-workaround.service
-```
+Create file [~/.local/share/wireplumber/scripts/wavexlrfix.lua](./files/wavexlrfix.lua)
 
 #### Notes
 
-The steps above configure a script to continuously attempt to start recording via pipewire, aiming to trigger the recording as soon as pipewire finishes starting up. The recorded audio is not saved as it is directed to `/dev/null` device.
-Due to the nature of this setup, it is inherently prone to a race condition.
+The steps above configure wireplumber to ensure Wave XLR playback node is created after the source (microphone) node is activated.
+The script creates a virtual sink node and a link between the node and Wave XLR microphone source. This way it forces the device to start a capture.
+Only after the link is initialized, the script creates a sink (playback) node for Wave XLR.
 
-In my testing on my machine I didn't experience any issues so far. The microphone gets activated before the playback, and both function correctly.
-One side effect of this approach is that a desktop environment reports microphone as being used continuously, which might be indicated, for example, by a red microphone icon in Gnome top bar.
+Known problems:
+* Unplugging and plugging Wave XLR results in no signal from the microphone. In order to fix - restart wireplumber - `systemctl restart --user wireplumber` or toggle the profile back and forth for Wave XLR device in `pavucontrol`.
 
-There is likely a better way to achieve this behaviour. Please feel free to raise an issue on this repository if you would like to suggest an improvement.
 
-What did **not** work:
-- Stopping the recording after the initial launch. The microphone eventually stops functioning if the recording gets stopped.
-- Rely on wireplumber to initialize devices. The workaround does not work most of the time when the device setup is managed by wireplumber.
+Please feel free to raise an issue on this repository if you would like to suggest an improvement to these instructions.
+

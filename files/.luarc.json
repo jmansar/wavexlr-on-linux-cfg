@@ -1,0 +1,14 @@
+{
+    "diagnostics.globals": [
+        "ObjectManager",
+        "Interest",
+        "Constraint",
+        "Link",
+        "Node",
+        "Log",
+        "Feature",
+    ],
+    "diagnostics.disable": [
+        "lowercase-global"
+    ]
+}
