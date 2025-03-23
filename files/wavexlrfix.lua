@@ -59,18 +59,29 @@ function createLinkForWaveXlrSource(waveXlrSourceNode)
 
             if inPort and outPort and inPort.properties["object.id"] and outPort.properties["object.id"] then
                 local args = {
-                    ["link.input.node"] = waveXlrSourceNode.properties["object.id"],
+                    ["link.input.node"] = nullSinkForWaveXlrSource.properties["object.id"],
                     ["link.input.port"] = inPort.properties["object.id"],
 
-                    ["link.output.node"] = nullSinkForWaveXlrSource.properties["object.id"],
+                    ["link.output.node"] = waveXlrSourceNode.properties["object.id"],
                     ["link.output.port"] = outPort.properties["object.id"],
                 }
 
                 log:notice("Creating link between null sink and WaveXLR source. Ports: " ..
-                    args["link.input.port"] .. " -> " .. args["link.output.port"])
+                    args["link.input.node"] ..
+                    "-" ..
+                    args["link.input.port"] .. " -> " .. args["link.output.node"] .. "-" .. args["link.output.port"])
 
                 nullSinkLink = Link("link-factory", args)
-                nullSinkLink:activate(Feature.Proxy.BOUND)
+
+                nullSinkLink:activate(Feature.Proxy.BOUND, function(n, err)
+                    if err then
+                        log:warning("Failed to create link between null sink and WaveXLR source"
+                            .. ": " .. tostring(err))
+                        node = nil
+                    else
+                        log:notice("Created link between null sink and WaveXLR source")
+                    end
+                end)
             end
         end
     end
