@@ -54,4 +54,4 @@ Known problems:
 
 Please feel free to raise an issue on this [repository](https://github.com/jmansar/wavexlr-on-linux-cfg) if you would like to suggest an improvement to these instructions.
 
-## [License](./LICENSE)
+[License](https://github.com/jmansar/wavexlr-on-linux-cfg/blob/main/LICENSE)
