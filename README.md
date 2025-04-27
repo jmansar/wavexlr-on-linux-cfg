@@ -1,4 +1,6 @@
-# Wave XLR on Linux - issues and workarounds 
+# Wave XLR on Linux
+
+Unofficial instructions to fix issues with Wave XLR on Linux.
 
 Wave XLR does not have an official support on Linux at this time (24/11/2024) - [Elgato Wave XLR - System Requirements](https://help.elgato.com/hc/en-us/articles/4404864886157-Elgato-Wave-XLR-System-Requirements).
 
@@ -50,5 +52,6 @@ Known problems:
 * Unplugging and plugging Wave XLR results in no signal from the microphone. In order to fix - restart wireplumber - `systemctl restart --user wireplumber` or toggle the profile back and forth for Wave XLR device in `pavucontrol`.
 
 
-Please feel free to raise an issue on this repository if you would like to suggest an improvement to these instructions.
+Please feel free to raise an issue on this [repository](https://github.com/jmansar/wavexlr-on-linux-cfg) if you would like to suggest an improvement to these instructions.
 
+## [License](./LICENSE)
