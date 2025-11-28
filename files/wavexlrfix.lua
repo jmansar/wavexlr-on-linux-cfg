@@ -121,6 +121,10 @@ function createWaveXlrSink(sourceNode)
             ["priority.driver"] = "1000",
             ["priority.session"] = "1000",
             ["node.pause-on-idle"] = "false",
+            ["card.profile.device"] = "0",
+            ["device.profile.description"] = "Stereo",
+            ["device.profile.name"] = "stereo",
+            ["port.group"] = "playback",
         }
 
         for k, v in pairs(device.properties) do
