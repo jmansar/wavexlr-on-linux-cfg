@@ -1,11 +1,50 @@
--- This script creates a virtual sink to link Wave XLR source (mirophone input) to.
--- After the link is estabilished it creates Wave XLR sink (playback output).
-log = Log.open_topic("s-wavexlrfix")
+-- Fix for Wave XLR / Wave 3 microphone not working while playback is active.
+-- https://github.com/jmansar/wavexlr-on-linux-cfg
+--
+-- This script creates a link between Wave device source (mirophone input) and a virtual null sink (output)
+-- in order to force the device to start a microphone capture before the playback is activated.
+-- After the link is estabilished it creates Wave device sink (playback output).
 
-waveXlrSourceOm = ObjectManager {
+-- BEGIN USER CONFIGURATION
+
+-- If you need to customize the sink node that is created by the script
+-- you can add the additional properties below
+CONFIG_SINK_ADDITIONAL_PROPERTIES = {
+    -- disables session suspend on idle for the sink playback
+    -- helps with potential audio playback delays and audio popping
+    ["session.suspend-timeout-seconds"] = "0"
+}
+
+-- END USER CONFIGURATION
+log = Log.open_topic("s-wavedevicefix")
+
+-- read arguments passed to the script from the wireplumber config file
+local scriptArgs = ...
+if scriptArgs ~= nil then
+    scriptArgs = scriptArgs:parse(1)
+else
+    scriptArgs = {}
+end
+
+CONFIG_WAVE_DEVICE_SOURCE_NAME = "wavexlr-source"
+CONFIG_WAVE_DEVICE_SINK_NAME = "wavexlr-sink"
+CONFIG_WAVE_DEVICE_DISPLAY_NAME = "WaveXLR"
+
+if scriptArgs["device"] == "wave3" then
+    CONFIG_WAVE_DEVICE_SOURCE_NAME = "wave3-source"
+    CONFIG_WAVE_DEVICE_SINK_NAME = "wave3-sink"
+    CONFIG_WAVE_DEVICE_DISPLAY_NAME = "Wave3"
+
+    log.notice("Use configuration for Wave3 device")
+else
+    log.notice("Use configuration for WaveXLR device")
+end
+
+
+waveDeviceSourceOm = ObjectManager {
     Interest {
         type = "node",
-        Constraint { "node.name", "matches", "wavexlr-source" },
+        Constraint { "node.name", "matches", CONFIG_WAVE_DEVICE_SOURCE_NAME },
     }
 }
 
@@ -21,23 +60,23 @@ devicesOm = ObjectManager {
     }
 }
 
-waveXlrSinkNode = nil
-nullSinkForWaveXlrSource = nil
+waveDeviceSinkNode = nil
+nullSinkForWaveDeviceSource = nil
 nullSinkLink = nil
 
-function createLinkForWaveXlrSource(waveXlrSourceNode)
+function createLinkForWaveDeviceSource(waveDeviceSourceNode)
     local outPort = nil
     local inPort = nil
 
     local outInterest = Interest {
         type = "port",
-        Constraint { "node.id", "equals", waveXlrSourceNode.properties["object.id"] },
+        Constraint { "node.id", "equals", waveDeviceSourceNode.properties["object.id"] },
         Constraint { "port.direction", "equals", "out" }
     }
 
     local inInterest = Interest {
         type = "port",
-        Constraint { "node.id", "equals", nullSinkForWaveXlrSource.properties["object.id"] },
+        Constraint { "node.id", "equals", nullSinkForWaveDeviceSource.properties["object.id"] },
         Constraint { "port.direction", "equals", "in" }
     }
 
@@ -59,14 +98,15 @@ function createLinkForWaveXlrSource(waveXlrSourceNode)
 
             if inPort and outPort and inPort.properties["object.id"] and outPort.properties["object.id"] then
                 local args = {
-                    ["link.input.node"] = nullSinkForWaveXlrSource.properties["object.id"],
+                    ["link.input.node"] = nullSinkForWaveDeviceSource.properties["object.id"],
                     ["link.input.port"] = inPort.properties["object.id"],
 
-                    ["link.output.node"] = waveXlrSourceNode.properties["object.id"],
+                    ["link.output.node"] = waveDeviceSourceNode.properties["object.id"],
                     ["link.output.port"] = outPort.properties["object.id"],
                 }
 
-                log:notice("Creating link between null sink and WaveXLR source. Ports: " ..
+                log:notice("Creating link between null sink and " ..
+                    CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source. Ports: " ..
                     args["link.input.node"] ..
                     "-" ..
                     args["link.input.port"] .. " -> " .. args["link.output.node"] .. "-" .. args["link.output.port"])
@@ -75,11 +115,12 @@ function createLinkForWaveXlrSource(waveXlrSourceNode)
 
                 nullSinkLink:activate(Feature.Proxy.BOUND, function(n, err)
                     if err then
-                        log:warning("Failed to create link between null sink and WaveXLR source"
+                        log:warning("Failed to create link between null sink and " ..
+                            CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source"
                             .. ": " .. tostring(err))
                         node = nil
                     else
-                        log:notice("Created link between null sink and WaveXLR source")
+                        log:notice("Created link between null sink and " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source")
                     end
                 end)
             end
@@ -92,13 +133,13 @@ end
 
 function onLinkCreated(_, link)
     if nullSinkLink and link.properties["object.id"] == nullSinkLink.properties["object.id"] then
-        for node in waveXlrSourceOm:iterate() do
-            createWaveXlrSink(node)
+        for node in waveDeviceSourceOm:iterate() do
+            createWaveDeviceSink(node)
         end
     end
 end
 
-function createWaveXlrSink(sourceNode)
+function createWaveDeviceSink(sourceNode)
     local deviceInterest = Interest {
         type = "device",
         Constraint { "object.id", "equals", sourceNode.properties["device.id"] }
@@ -108,9 +149,9 @@ function createWaveXlrSink(sourceNode)
         local sinkNodeProperties = {
             ["device.id"] = sourceNode.properties["device.id"],
             ["factory.name"] = "api.alsa.pcm.sink",
-            ["node.name"] = "wavexlr-sink",
-            ["node.description"] = "WaveXLR Sink",
-            ["node.nick"] = "WaveXLR Sink",
+            ["node.name"] = CONFIG_WAVE_DEVICE_SINK_NAME,
+            ["node.description"] = CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " Sink",
+            ["node.nick"] = CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " Sink",
             ["media.class"] = "Audio/Sink",
             ["api.alsa.path"] = sourceNode.properties["api.alsa.path"],
             ["api.alsa.pcm.card"] = sourceNode.properties["api.alsa.pcm.card"],
@@ -133,31 +174,37 @@ function createWaveXlrSink(sourceNode)
             end
         end
 
-        log:notice("Creating custom WaveXLR sink. api.alsa.path: " .. sourceNode.properties["api.alsa.path"])
+        for k, v in pairs(CONFIG_SINK_ADDITIONAL_PROPERTIES) do
+            sinkNodeProperties[k] = v
+        end
 
-        waveXlrSinkNode = Node("adapter", sinkNodeProperties)
-        waveXlrSinkNode:activate(Feature.Proxy.BOUND, function(n, err)
+        log:notice("Creating custom " ..
+            CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink. api.alsa.path: " .. sourceNode.properties["api.alsa.path"])
+
+        waveDeviceSinkNode = Node("adapter", sinkNodeProperties)
+        waveDeviceSinkNode:activate(Feature.Proxy.BOUND, function(n, err)
             if err then
                 log:warning("Failed to create " .. sinkNodeProperties["node.name"]
                     .. ": " .. tostring(err))
-                waveXlrSinkNode = nil
+                waveDeviceSinkNode = nil
             else
-                log:notice("Created custom WaveXLR sink. object.id: " .. n.properties["object.id"])
+                log:notice("Created custom " ..
+                    CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink. object.id: " .. n.properties["object.id"])
             end
         end)
     end
 end
 
-function onWaveXlrSourceAdded(_, node)
-    createLinkForWaveXlrSource(node)
+function onWaveDeviceSourceAdded(_, node)
+    createLinkForWaveDeviceSource(node)
 end
 
 function createNullSink()
     local properties = {
         ["factory.name"] = "support.null-audio-sink",
-        ["node.name"] = "null-sink-for-wavexlr-source",
-        ["node.description"] = "Null Sink For WaveXLR Source - do not use",
-        ["node.nick"] = "Null Sink For WaveXLR Source - do not use",
+        ["node.name"] = "null-sink-for-" .. CONFIG_WAVE_DEVICE_SOURCE_NAME,
+        ["node.description"] = "Null Sink For " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " Source - do not use",
+        ["node.nick"] = "Null Sink For " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " Source - do not use",
         ["media.class"] = "Audio/Sink",
         ["monitor.channel-volumes"] = "true",
         ["monitor.passthrough"] = "true",
@@ -166,7 +213,7 @@ function createNullSink()
         ["node.passive"] = "false"
     }
 
-    log:notice("Creating custom null sink for WaveXLR Source")
+    log:notice("Creating custom null sink for " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " Source")
 
     local node = Node("adapter", properties)
 
@@ -176,7 +223,7 @@ function createNullSink()
                 .. ": " .. tostring(err))
             node = nil
         else
-            log:notice("Created null sink for WaveXLR source. object.id: " ..
+            log:notice("Created null sink for " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source. object.id: " ..
                 n.properties["object.id"])
             onNullSinkCreated();
         end
@@ -185,11 +232,11 @@ function createNullSink()
     return node
 end
 
-function onWaveXlrSourceRemoved()
-    if waveXlrSinkNode then
-        log:notice("Removing custom WaveXLR sink");
-        waveXlrSinkNode:request_destroy()
-        waveXlrSinkNode = nil
+function onWaveDeviceSourceRemoved()
+    if waveDeviceSinkNode then
+        log:notice("Removing custom " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink");
+        waveDeviceSinkNode:request_destroy()
+        waveDeviceSinkNode = nil
     end
 
     if nullSinkLink then
@@ -204,12 +251,12 @@ function onNullSinkCreated()
 
     linkOm:activate()
     linkOm:connect("object-added", onLinkCreated)
-    waveXlrSourceOm:connect("object-added", onWaveXlrSourceAdded)
-    waveXlrSourceOm:connect("object-removed", onWaveXlrSourceRemoved)
-    waveXlrSourceOm:activate()
+    waveDeviceSourceOm:connect("object-added", onWaveDeviceSourceAdded)
+    waveDeviceSourceOm:connect("object-removed", onWaveDeviceSourceRemoved)
+    waveDeviceSourceOm:activate()
 end
 
-nullSinkForWaveXlrSource = createNullSink();
+nullSinkForWaveDeviceSource = createNullSink();
 devicesOm:activate()
 
 log:notice("script initialized")
