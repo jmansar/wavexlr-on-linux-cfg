@@ -68,6 +68,17 @@ To view wireplumber logs
 journalctl -u wireplumber --user --lines 30
 ```
 
+## Changelog
+
+### 2025-12-06
+
+* Fix intermittent failures when creating a null sink link. [#12](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/12)
+* Add instructions for Wave 3, adjust the config and the script. [#13](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/13)
+* Set `session.suspend-timeout-seconds: 0` on the device sink. [#13](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/13)
+
+### 2025-11-29
+* Add device profile properties to WaveXLR Sink for audio mixer compatibility. [#11](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/11)
+
 ## Contributing
 
 If you'd like to suggest improvements to these instructions, please raise an issue or a PR on this [repository](https://github.com/jmansar/wavexlr-on-linux-cfg).
