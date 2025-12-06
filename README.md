@@ -42,6 +42,7 @@ mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
 ```
 
 For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/51-wavexlr.conf) file.
+
 For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
 
 ##### Step 2. Create a custom wireplumber script.
