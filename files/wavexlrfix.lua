@@ -178,6 +178,7 @@ function createNullSink()
         else
             log:notice("Created null sink for WaveXLR source. object.id: " ..
                 n.properties["object.id"])
+            onNullSinkCreated();
         end
     end)
 
@@ -198,13 +199,17 @@ function onWaveXlrSourceRemoved()
     end
 end
 
-nullSinkForWaveXlrSource = createNullSink();
+function onNullSinkCreated()
+    log:notice("Activate event listeners");
 
+    linkOm:activate()
+    linkOm:connect("object-added", onLinkCreated)
+    waveXlrSourceOm:connect("object-added", onWaveXlrSourceAdded)
+    waveXlrSourceOm:connect("object-removed", onWaveXlrSourceRemoved)
+    waveXlrSourceOm:activate()
+end
+
+nullSinkForWaveXlrSource = createNullSink();
 devicesOm:activate()
-linkOm:activate()
-linkOm:connect("object-added", onLinkCreated)
-waveXlrSourceOm:connect("object-added", onWaveXlrSourceAdded)
-waveXlrSourceOm:connect("object-removed", onWaveXlrSourceRemoved)
-waveXlrSourceOm:activate()
 
 log:notice("script initialized")
