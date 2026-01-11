@@ -24,10 +24,24 @@ After some trial and error, I found that the issue is most likely not related to
 
 If you start playing an audio and then initiate recording from the microphone, there is no signal detected from the microphone. However, when the process is reversed, starting the recording first then playback, everything seems to work fine.
 
-#### The workaround
+#### The workaround (NEW)
 
-The following workaround is not a proper fix for the problem, but makes the device usable with both headphones and microphone working.
 These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/).
+
+Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
+```
+mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
+```
+
+For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/51-wavexlr.conf) file.
+
+For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
+
+The configuration sets the `node.always-process` property to `true` on the device source node (microphone input).
+ 
+#### The workaround (OLD)
+
+If you experience issues with the new approach, here is the original workaround:
 
 The steps below configure wireplumber so that Wave XLR playback node is created only after the microphone source is activated.
 A custom script creates a virtual sink node and links it to the Wave XLR microphone source, forcing the device to start and keep the microphone capture active.
@@ -41,9 +55,9 @@ Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf
 mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
 ```
 
-For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/51-wavexlr.conf) file.
+For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/old/51-wavexlr.conf) file.
 
-For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
+For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/old/51-wave3.conf) file.
 
 ##### Step 2. Create a custom wireplumber script.
 
@@ -52,10 +66,10 @@ Create the directory if it doesn't exist `~/.local/share/wireplumber/scripts/`:
 mkdir -p ~/.local/share/wireplumber/scripts/
 ```
 
-Create the file [~/.local/share/wireplumber/scripts/wavedevicefix.lua](./files/wavedevicefix.lua)
+Create the file [~/.local/share/wireplumber/scripts/wavedevicefix.lua](./files/old/wavedevicefix.lua)
 
-
-> ⚠️ Note: If you’re upgrading from a version released before December 2025, be aware that the script file has been renamed from `wavexlrfix.lua` to `wavedevicefix.lua`. Make sure to also replace your old configuration file with the updated version provided above.
+> [!IMPORTANT]  
+> If you’re upgrading from a version released before December 2025, be aware that the script file has been renamed from `wavexlrfix.lua` to `wavedevicefix.lua`. Make sure to also replace your old configuration file with the updated version provided above.
 
 #### Troubleshooting
 
@@ -70,6 +84,9 @@ journalctl -u wireplumber --user --lines 30
 ```
 
 ## Changelog
+
+### 2026-01-11
+* Add instructions for a new, much simpler workaround reported in [#15](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15).
 
 ### 2025-12-06
 
