@@ -26,9 +26,6 @@ If you start playing an audio and then initiate recording from the microphone, t
 
 #### The workaround (NEW)
 
-> [!NOTE]  
-> This is a new, much simpler workaround suggested here: [Alternative](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15).
-
 These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/).
 
 Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
@@ -89,7 +86,7 @@ journalctl -u wireplumber --user --lines 30
 ## Changelog
 
 ### 2026-01-11
-* Add the instructions for the new workaround reported here: [Alternative](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15).
+* Add instructions for a new, much simpler workaround reported in [#15](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15).
 
 ### 2025-12-06
 
