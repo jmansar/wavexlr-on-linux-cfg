@@ -26,7 +26,8 @@ If you start playing an audio and then initiate recording from the microphone, t
 
 #### The workaround (NEW)
 
-These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/).
+These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) (>=0.5).
+For wireplumber 0.4, which is for example installed on Ubuntu 24.04 LTS see instructions [below](#wireplumber-0.4)
 
 Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
 ```
@@ -38,7 +39,18 @@ For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](
 For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
 
 The configuration sets the `node.always-process` property to `true` on the device source node (microphone input).
- 
+
+##### Wireplumber 0.4
+
+Create the directory if it doesn't exist `~/.config/wireplumber/main.lua.d/`:
+```
+mkdir -p ~/.config/wireplumber/main.lua.d/
+```
+
+For Wave XLR: create [~/.config/wireplumber/main.lua.d/51-wavexlr.lua](./files/51-wavexlr.lua) file.
+
+For Wave 3: create [~/.config/wireplumber/main.lua.d/51-wave3.lua](./files/51-wave3.lua) file.
+
 #### The workaround (OLD)
 
 If you experience issues with the new approach, here is the original workaround:
@@ -84,6 +96,9 @@ journalctl -u wireplumber --user --lines 30
 ```
 
 ## Changelog
+
+### 2026-01-24
+* Add instructions for wireplumber 0.4 which is used on older systems. Reported in [#18](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/18).
 
 ### 2026-01-11
 * Add instructions for a new, much simpler workaround reported in [#15](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15).
