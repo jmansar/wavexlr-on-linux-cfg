@@ -26,8 +26,9 @@ If you start playing an audio and then initiate recording from the microphone, t
 
 #### The workaround (NEW)
 
-These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) (>=0.5).
-For wireplumber 0.4, which is for example installed on Ubuntu 24.04 LTS see instructions [below](#wireplumber-0.4)
+These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) `>=0.5`.
+
+For wireplumber `0.4`, which is for example installed on Ubuntu 24.04 LTS see the instructions [below](#wireplumber-04)
 
 Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
 ```
