@@ -1,6 +1,6 @@
 # Wave XLR on Linux
 
-Unofficial instructions to fix issues with Wave XLR (and also Wave 3) on Linux.
+Unofficial instructions to fix issues with Wave XLR (also Wave 3 and XLR Dock) on Linux.
 
 As of November 2024, Wave XLR does not have official Linux support - [Elgato Wave XLR - System Requirements](https://help.elgato.com/hc/en-us/articles/4404864886157-Elgato-Wave-XLR-System-Requirements).
 
@@ -39,6 +39,8 @@ For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](
 
 For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
 
+For XLR Dock: create [~/.config/wireplumber/wireplumber.conf.d/51-xlrdock.conf](./files/51-xlrdock.conf) file.
+
 The configuration sets the `node.always-process` property to `true` on the device source node (microphone input).
 
 ##### Wireplumber 0.4
@@ -51,6 +53,8 @@ mkdir -p ~/.config/wireplumber/main.lua.d/
 For Wave XLR: create [~/.config/wireplumber/main.lua.d/51-wavexlr.lua](./files/51-wavexlr.lua) file.
 
 For Wave 3: create [~/.config/wireplumber/main.lua.d/51-wave3.lua](./files/51-wave3.lua) file.
+
+For XLR Dock: create [~/.config/wireplumber/main.lua.d/51-xlrdock.lua](./files/51-xlrdock.lua) file.
 
 #### The workaround (OLD)
 
@@ -97,6 +101,9 @@ journalctl -u wireplumber --user --lines 30
 ```
 
 ## Changelog
+
+### 2026-02-15
+* Add instructions for XLR Dock. Reported in [#25](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/25).
 
 ### 2026-01-24
 * Add instructions for wireplumber 0.4 which is used on older systems. Reported in [#18](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/18).
