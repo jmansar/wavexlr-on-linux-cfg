@@ -10,6 +10,8 @@ However, since the device is recognized by the system as a standard USB audio de
 > The content of this page is based on my personal experience and may not work in all cases.
 > I cannot guarantee the accuracy or reliability of the information provided. Use at your own risk. No warranties or guarantees, express or implied, are provided.
 
+These instructions only work if you are using pipewire. If you run `wpctl status -n` and it doesn't show any audio devices, you are most likely using pulseaudio. Switching is distro-specific, ask your favorite LLM and it will probably give you instrucions.
+
 ## Issues
 
 ### No audio signal from the microphone
