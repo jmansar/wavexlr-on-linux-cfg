@@ -1,4 +1,4 @@
--- Fix for Wave XLR / Wave 3 microphone not working while playback is active.
+-- Fix for Wave XLR / Wave 3 / Wave 1 / XLR Dock microphone not working while playback is active.
 -- https://github.com/jmansar/wavexlr-on-linux-cfg
 --
 -- This script creates a link between Wave device source (mirophone input) and a virtual null sink (output)
@@ -36,6 +36,18 @@ if scriptArgs["device"] == "wave3" then
     CONFIG_WAVE_DEVICE_DISPLAY_NAME = "Wave3"
 
     log.notice("Use configuration for Wave3 device")
+elseif scriptArgs["device"] == "wave1" then
+    CONFIG_WAVE_DEVICE_SOURCE_NAME = "wave1-source"
+    CONFIG_WAVE_DEVICE_SINK_NAME = "wave1-sink"
+    CONFIG_WAVE_DEVICE_DISPLAY_NAME = "Wave1"
+
+    log.notice("Use configuration for Wave1 device")
+elseif scriptArgs["device"] == "xlrdock" then
+    CONFIG_WAVE_DEVICE_SOURCE_NAME = "xlrdock-source"
+    CONFIG_WAVE_DEVICE_SINK_NAME = "xlrdock-sink"
+    CONFIG_WAVE_DEVICE_DISPLAY_NAME = "XLRDock"
+
+    log.notice("Use configuration for XLRDock device")
 else
     log.notice("Use configuration for WaveXLR device")
 end

@@ -24,7 +24,45 @@ After some trial and error, I found that the issue is most likely not related to
 
 If you start playing an audio and then initiate recording from the microphone, there is no signal detected from the microphone. However, when the process is reversed, starting the recording first then playback, everything seems to work fine.
 
-#### The workaround (NEW)
+#### The workaround
+
+These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) `>=0.5`.
+
+The steps below configure wireplumber so that Wave XLR playback node is created only after the microphone source is activated.
+A custom script creates a virtual sink node and links it to the microphone source, forcing the device to start and keep the microphone capture active.
+
+##### Step 1. Disable the autoconfigured playback sink and define a custom Lua script.
+
+Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
+```
+mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
+```
+
+For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/cfg1/51-wavexlr.conf) file.
+
+For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/cfg1/51-wave3.conf) file.
+
+For Wave 1: create [~/.config/wireplumber/wireplumber.conf.d/51-wave1.conf](./files/cfg1/51-wave1.conf) file.
+
+For XLR Dock: create [~/.config/wireplumber/wireplumber.conf.d/51-xlrdock.conf](./files/cfg1/51-xlrdock.conf) file.
+
+##### Step 2. Create a custom wireplumber script.
+
+Create the directory if it doesn't exist `~/.local/share/wireplumber/scripts/`:
+```
+mkdir -p ~/.local/share/wireplumber/scripts/
+```
+
+Create the file [~/.local/share/wireplumber/scripts/wavedevicefix.lua](./files/cfg1/wavedevicefix.lua)
+
+> **IMPORTANT**
+> If you’re upgrading from a version released before December 2025, be aware that the script file has been renamed from `wavexlrfix.lua` to `wavedevicefix.lua`. Make sure to also replace your old configuration file with the updated version provided above.
+
+#### The workaround (Alternative)
+
+**This fix doesn't work for me anymore**
+
+The following alternative solution was reported in [#15](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15). It is much simpler, however it stopped working for me after one of the system updates. I'm going to leave it here for now, in case someone finds it useful and it works on their system.
 
 These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) `>=0.5`.
 > Note: For wireplumber version 0.4, such as the one installed on Ubuntu 22.04 LTS, refer to the instructions [here](#wireplumber-04).
@@ -35,13 +73,13 @@ Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf
 mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
 ```
 
-For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/51-wavexlr.conf) file.
+For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/cfg2/51-wavexlr.conf) file.
 
-For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/51-wave3.conf) file.
+For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/cfg2/51-wave3.conf) file.
 
-For Wave 1: create [~/.config/wireplumber/wireplumber.conf.d/51-wave1.conf](./files/51-wave1.conf) file.
+For Wave 1: create [~/.config/wireplumber/wireplumber.conf.d/51-wave1.conf](./files/cfg2/51-wave1.conf) file.
 
-For XLR Dock: create [~/.config/wireplumber/wireplumber.conf.d/51-xlrdock.conf](./files/51-xlrdock.conf) file.
+For XLR Dock: create [~/.config/wireplumber/wireplumber.conf.d/51-xlrdock.conf](./files/cfg2/51-xlrdock.conf) file.
 
 The configuration sets the `node.always-process` property to `true` on the device source node (microphone input).
 
@@ -52,45 +90,13 @@ Create the directory if it doesn't exist `~/.config/wireplumber/main.lua.d/`:
 mkdir -p ~/.config/wireplumber/main.lua.d/
 ```
 
-For Wave XLR: create [~/.config/wireplumber/main.lua.d/51-wavexlr.lua](./files/51-wavexlr.lua) file.
+For Wave XLR: create [~/.config/wireplumber/main.lua.d/51-wavexlr.lua](./files/cfg2/51-wavexlr.lua) file.
 
-For Wave 3: create [~/.config/wireplumber/main.lua.d/51-wave3.lua](./files/51-wave3.lua) file.
+For Wave 3: create [~/.config/wireplumber/main.lua.d/51-wave3.lua](./files/cfg2/51-wave3.lua) file.
 
-For Wave 1: create [~/.config/wireplumber/main.lua.d/51-wave1.lua](./files/51-wave1.lua) file.
+For Wave 1: create [~/.config/wireplumber/main.lua.d/51-wave1.lua](./files/cfg2/51-wave1.lua) file.
 
-For XLR Dock: create [~/.config/wireplumber/main.lua.d/51-xlrdock.lua](./files/51-xlrdock.lua) file.
-
-#### The workaround (OLD)
-
-If you experience issues with the new approach, here is the original workaround:
-
-The steps below configure wireplumber so that Wave XLR playback node is created only after the microphone source is activated.
-A custom script creates a virtual sink node and links it to the Wave XLR microphone source, forcing the device to start and keep the microphone capture active.
-
-> It was reported that the same workaround works for Wave 3 microphones - [Works for Wave 3 too](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/10)
-
-##### Step 1. Disable the autoconfigured playback sink and define a custom Lua script.
-
-Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
-```
-mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
-```
-
-For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/old/51-wavexlr.conf) file.
-
-For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/old/51-wave3.conf) file.
-
-##### Step 2. Create a custom wireplumber script.
-
-Create the directory if it doesn't exist `~/.local/share/wireplumber/scripts/`:
-```
-mkdir -p ~/.local/share/wireplumber/scripts/
-```
-
-Create the file [~/.local/share/wireplumber/scripts/wavedevicefix.lua](./files/old/wavedevicefix.lua)
-
-> [!IMPORTANT]  
-> If you’re upgrading from a version released before December 2025, be aware that the script file has been renamed from `wavexlrfix.lua` to `wavedevicefix.lua`. Make sure to also replace your old configuration file with the updated version provided above.
+For XLR Dock: create [~/.config/wireplumber/main.lua.d/51-xlrdock.lua](./files/cfg2/51-xlrdock.lua) file.
 
 #### Troubleshooting
 
