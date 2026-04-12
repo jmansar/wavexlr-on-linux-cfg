@@ -112,6 +112,9 @@ journalctl -u wireplumber --user --lines 30
 
 ## Changelog
 
+### 2026-04-12
+* Revert to using original workaround for the microphone issue. [#31](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/31)
+
 ### 2026-03-20
 * Add instructions for Wave 1. Reported in [#27](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/27).
 
