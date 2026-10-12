@@ -15,6 +15,12 @@ CONFIG_SINK_ADDITIONAL_PROPERTIES = {
     ["session.suspend-timeout-seconds"] = "0"
 }
 
+CONFIG_SETTLE_DELAY_MS = 1500
+
+CONFIG_POLL_INTERVAL_MS = 100
+
+CONFIG_MAX_WAIT_MS = 10000
+
 -- END USER CONFIGURATION
 log = Log.open_topic("s-wavedevicefix")
 
@@ -60,15 +66,16 @@ waveDeviceSourceOm = ObjectManager {
     }
 }
 
-linkOm = ObjectManager {
-    Interest {
-        type = "link",
-    }
-}
-
 devicesOm = ObjectManager {
     Interest {
         type = "device",
+    }
+}
+
+-- One port ObjectManager for the lifetime of the script.
+portOm = ObjectManager {
+    Interest {
+        type = "port",
     }
 }
 
@@ -76,79 +83,28 @@ waveDeviceSinkNode = nil
 nullSinkForWaveDeviceSource = nil
 nullSinkLink = nil
 
-function createLinkForWaveDeviceSource(waveDeviceSourceNode)
-    local outPort = nil
-    local inPort = nil
+generation = 0
 
-    local outInterest = Interest {
-        type = "port",
-        Constraint { "node.id", "equals", waveDeviceSourceNode.properties["object.id"] },
-        Constraint { "port.direction", "equals", "out" }
-    }
-
-    local inInterest = Interest {
-        type = "port",
-        Constraint { "node.id", "equals", nullSinkForWaveDeviceSource.properties["object.id"] },
-        Constraint { "port.direction", "equals", "in" }
-    }
-
-    local portOm = ObjectManager {
-        Interest {
-            type = "port",
-        }
-    }
-
-    function onPortAdded()
-        if not nullSinkLink then
-            for port in portOm:iterate(outInterest) do
-                outPort = port
-            end
-
-            for port in portOm:iterate(inInterest) do
-                inPort = port
-            end
-
-            if inPort and outPort and inPort.properties["object.id"] and outPort.properties["object.id"] then
-                local args = {
-                    ["link.input.node"] = nullSinkForWaveDeviceSource.properties["object.id"],
-                    ["link.input.port"] = inPort.properties["object.id"],
-
-                    ["link.output.node"] = waveDeviceSourceNode.properties["object.id"],
-                    ["link.output.port"] = outPort.properties["object.id"],
-                }
-
-                log:notice("Creating link between null sink and " ..
-                    CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source. Ports: " ..
-                    args["link.input.node"] ..
-                    "-" ..
-                    args["link.input.port"] .. " -> " .. args["link.output.node"] .. "-" .. args["link.output.port"])
-
-                nullSinkLink = Link("link-factory", args)
-
-                nullSinkLink:activate(Feature.Proxy.BOUND, function(n, err)
-                    if err then
-                        log:warning("Failed to create link between null sink and " ..
-                            CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source"
-                            .. ": " .. tostring(err))
-                        node = nil
-                    else
-                        log:notice("Created link between null sink and " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source")
-                    end
-                end)
-            end
-        end
+function currentWaveDeviceSource()
+    for node in waveDeviceSourceOm:iterate() do
+        return node
     end
-
-    portOm:connect("object-added", onPortAdded)
-    portOm:activate()
+    return nil
 end
 
-function onLinkCreated(_, link)
-    if nullSinkLink and link.properties["object.id"] == nullSinkLink.properties["object.id"] then
-        for node in waveDeviceSourceOm:iterate() do
-            createWaveDeviceSink(node)
-        end
+function findPort(nodeId, direction)
+    local found = nil
+    local interest = Interest {
+        type = "port",
+        Constraint { "node.id", "equals", nodeId },
+        Constraint { "port.direction", "equals", direction }
+    }
+
+    for port in portOm:iterate(interest) do
+        found = port
     end
+
+    return found
 end
 
 function createWaveDeviceSink(sourceNode)
@@ -193,22 +149,165 @@ function createWaveDeviceSink(sourceNode)
         log:notice("Creating custom " ..
             CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink. api.alsa.path: " .. sourceNode.properties["api.alsa.path"])
 
-        waveDeviceSinkNode = Node("adapter", sinkNodeProperties)
-        waveDeviceSinkNode:activate(Feature.Proxy.BOUND, function(n, err)
+        local sinkNode = Node("adapter", sinkNodeProperties)
+        waveDeviceSinkNode = sinkNode
+        sinkNode:activate(Feature.Proxy.BOUND, function(n, err)
             if err then
                 log:warning("Failed to create " .. sinkNodeProperties["node.name"]
                     .. ": " .. tostring(err))
-                waveDeviceSinkNode = nil
+                if waveDeviceSinkNode == sinkNode then
+                    waveDeviceSinkNode = nil
+                end
             else
                 log:notice("Created custom " ..
                     CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink. object.id: " .. n.properties["object.id"])
             end
         end)
+
+        return
     end
 end
 
+function scheduleWaveDeviceSink(gen)
+    local waitedMs = 0
+    local runningMs = 0
+    local stateWarned = false
+
+    log:notice("Waiting for " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source to run for " ..
+        CONFIG_SETTLE_DELAY_MS .. " ms before creating the sink")
+
+    Core.timeout_add(CONFIG_POLL_INTERVAL_MS, function()
+        if gen ~= generation or waveDeviceSinkNode then
+            return false
+        end
+
+        local sourceNode = currentWaveDeviceSource()
+        if not sourceNode then
+            return false
+        end
+
+        waitedMs = waitedMs + CONFIG_POLL_INTERVAL_MS
+
+        local ok, state = pcall(function() return sourceNode.state end)
+        local running
+        if ok and state ~= nil then
+            running = (tostring(state) == "running")
+        else
+            if not stateWarned then
+                log:warning("Cannot read " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME ..
+                    " source state, using a fixed delay instead")
+                stateWarned = true
+            end
+            running = true
+        end
+
+        if running then
+            runningMs = runningMs + CONFIG_POLL_INTERVAL_MS
+        else
+            runningMs = 0
+        end
+
+        if runningMs >= CONFIG_SETTLE_DELAY_MS then
+            log:notice(CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source has been running for " ..
+                runningMs .. " ms (waited " .. waitedMs .. " ms in total)")
+            createWaveDeviceSink(sourceNode)
+            return false
+        end
+
+        if waitedMs >= CONFIG_MAX_WAIT_MS then
+            log:warning(CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source did not stay running within " ..
+                CONFIG_MAX_WAIT_MS .. " ms (state: " .. tostring(state) ..
+                "). Creating the sink anyway, the microphone may be silent")
+            createWaveDeviceSink(sourceNode)
+            return false
+        end
+
+        return true
+    end)
+end
+
+function tryCreateLinkForWaveDeviceSource()
+    if nullSinkLink or not nullSinkForWaveDeviceSource then
+        return
+    end
+
+    local sourceNode = currentWaveDeviceSource()
+    if not sourceNode then
+        return
+    end
+
+    local sourceId = sourceNode.properties["object.id"]
+    local nullSinkId = nullSinkForWaveDeviceSource.properties["object.id"]
+    if not sourceId or not nullSinkId then
+        return
+    end
+
+    local outPort = findPort(sourceId, "out")
+    local inPort = findPort(nullSinkId, "in")
+    if not outPort or not inPort then
+        return
+    end
+
+    local outPortId = outPort.properties["object.id"]
+    local inPortId = inPort.properties["object.id"]
+    if not outPortId or not inPortId then
+        return
+    end
+
+    local args = {
+        ["link.input.node"] = nullSinkId,
+        ["link.input.port"] = inPortId,
+
+        ["link.output.node"] = sourceId,
+        ["link.output.port"] = outPortId,
+    }
+
+    log:notice("Creating link between null sink and " ..
+        CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source. Ports: " ..
+        args["link.input.node"] ..
+        "-" ..
+        args["link.input.port"] .. " -> " .. args["link.output.node"] .. "-" .. args["link.output.port"])
+
+    local gen = generation
+    local link = Link("link-factory", args)
+    nullSinkLink = link
+
+    link:activate(Feature.Proxy.BOUND, function(l, err)
+        if err then
+            log:warning("Failed to create link between null sink and " ..
+                CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source"
+                .. ": " .. tostring(err))
+            if nullSinkLink == link then
+                nullSinkLink = nil
+            end
+        else
+            log:notice("Created link between null sink and " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " source")
+            if gen == generation and nullSinkLink == link then
+                scheduleWaveDeviceSink(gen)
+            end
+        end
+    end)
+end
+
 function onWaveDeviceSourceAdded(_, node)
-    createLinkForWaveDeviceSource(node)
+    generation = generation + 1
+    tryCreateLinkForWaveDeviceSource()
+end
+
+function onWaveDeviceSourceRemoved()
+    generation = generation + 1
+
+    if waveDeviceSinkNode then
+        log:notice("Removing custom " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink");
+        waveDeviceSinkNode:request_destroy()
+        waveDeviceSinkNode = nil
+    end
+
+    if nullSinkLink then
+        log:notice("Removing null sink link");
+        nullSinkLink:request_destroy()
+        nullSinkLink = nil
+    end
 end
 
 function createNullSink()
@@ -244,25 +343,11 @@ function createNullSink()
     return node
 end
 
-function onWaveDeviceSourceRemoved()
-    if waveDeviceSinkNode then
-        log:notice("Removing custom " .. CONFIG_WAVE_DEVICE_DISPLAY_NAME .. " sink");
-        waveDeviceSinkNode:request_destroy()
-        waveDeviceSinkNode = nil
-    end
-
-    if nullSinkLink then
-        log:notice("Removing null sink link");
-        nullSinkLink:request_destroy()
-        nullSinkLink = nil
-    end
-end
-
 function onNullSinkCreated()
     log:notice("Activate event listeners");
 
-    linkOm:activate()
-    linkOm:connect("object-added", onLinkCreated)
+    portOm:connect("object-added", tryCreateLinkForWaveDeviceSource)
+    portOm:activate()
     waveDeviceSourceOm:connect("object-added", onWaveDeviceSourceAdded)
     waveDeviceSourceOm:connect("object-removed", onWaveDeviceSourceRemoved)
     waveDeviceSourceOm:activate()
