@@ -72,7 +72,6 @@ devicesOm = ObjectManager {
     }
 }
 
--- One port ObjectManager for the lifetime of the script.
 portOm = ObjectManager {
     Interest {
         type = "port",
