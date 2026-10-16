@@ -107,6 +107,9 @@ journalctl -u wireplumber --user --lines 30
 
 ## Changelog
 
+### 2026-10-16
+* Add script to configure virtual outputs. Remove "alternative" solution for mic issue. [#42](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/42)
+
 ### 2026-10-12
 * Waits for source to be running before creating the sink. [#38](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/38)
 
