@@ -1,4 +1,4 @@
-# Wave XLR on Linux
+# Wave XLR (and other) on Linux
 
 Unofficial instructions to fix issues with Wave XLR (also Wave 1, Wave 3 and XLR Dock) on Linux.
 
@@ -10,26 +10,18 @@ However, since the device is recognized by the system as a standard USB audio de
 > The content of this page is based on my personal experience and may not work in all cases.
 > I cannot guarantee the accuracy or reliability of the information provided. Use at your own risk. No warranties or guarantees, express or implied, are provided.
 
-## Issues
-
-### No audio signal from the microphone
-
-When the device is used for both playback and recording, the microphone produces no audio signal.
-
-Other users have reported the same issue:
-* [endeavouros forum post](https://forum.endeavouros.com/t/cannot-use-mic-when-output-input-are-selected-on-sound-device/43275/13)
-* [pipewire issue #3587](https://gitlab.freedesktop.org/pipewire/pipewire/-/issues/3587)
-
-After some trial and error, I found that the issue is most likely not related to [pipewire](https://pipewire.org/) and is more low-level. It's reproducible with playback and recording from raw ALSA devices without pipewire or pulseaudio running.
-
-If you start playing an audio and then initiate recording from the microphone, there is no signal detected from the microphone. However, when the process is reversed, starting the recording first then playback, everything seems to work fine.
-
-#### The workaround
-
 These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) `>=0.5`.
 
-The steps below configure wireplumber so that Wave XLR playback node is created only after the microphone source is activated.
-A custom script creates a virtual sink node and links it to the microphone source, forcing the device to start and keep the microphone capture active.
+## Solutions
+
+- [Fix missing microphone audio](#fix-missing-microphone-audio)
+- [Configure virtual audio - Music, Comms, Game etc.](#configure-virtual-audio---music-comms-game-etc)
+
+### Fix missing microphone audio
+
+When you use the device for both audio input (a microphone) and audio output (headphones or speakers), the microphone may fail to capture audio. This occurs when audio playback starts before the microphone input is active.
+
+The steps below configure WirePlumber to create the audio output only after the microphone input has been activated. A custom script creates a virtual output and links it to the microphone input, ensuring that microphone capture starts and remains active.
 
 ##### Step 1. Disable the autoconfigured playback sink and define a custom Lua script.
 
@@ -58,49 +50,52 @@ Create the file [~/.local/share/wireplumber/scripts/wavedevicefix.lua](./files/c
 > **IMPORTANT**
 > If you’re upgrading from a version released before December 2025, be aware that the script file has been renamed from `wavexlrfix.lua` to `wavedevicefix.lua`. Make sure to also replace your old configuration file with the updated version provided above.
 
-#### The workaround (Alternative)
 
-**This fix doesn't work for me anymore**
+### Configure virtual audio - Music, Comms, Game etc.
 
-The following alternative solution was reported in [#15](https://github.com/jmansar/wavexlr-on-linux-cfg/issues/15). It is much simpler, however it stopped working for me after one of the system updates. I'm going to leave it here for now, in case someone finds it useful and it works on their system.
+Virtual audio outputs make it possible to route applications into separate categories. For example, you can send a music player to **Music**, a voice-chat application to **Comms**, and a game to **Game**. All three outputs are played through the Wave device, so you can still hear them normally.
 
-These instructions assume your Linux distribution uses [pipewire](https://pipewire.org/) and [wireplumber](https://pipewire.pages.freedesktop.org/wireplumber/) `>=0.5`.
-> Note: For wireplumber version 0.4, such as the one installed on Ubuntu 22.04 LTS, refer to the instructions [here](#wireplumber-04).
+Each virtual output can also be captured separately. This is useful for streaming and recording because you can choose which categories your audience or recording will hear. For example, you can capture **Game** and **Comms** while excluding **Music**, even though you can hear all three through your headphones or speakers.
 
+This configuration uses the Wave device output created by the previous section, so complete those steps first.
 
-Create the directory if it doesn't exist `~/.config/wireplumber/wireplumber.conf.d/`:
+##### Step 1. Install the virtual sinks script.
+
+Create the WirePlumber scripts directory if it does not already exist:
+
 ```
-mkdir -p ~/.config/wireplumber/wireplumber.conf.d/
-```
-
-For Wave XLR: create [~/.config/wireplumber/wireplumber.conf.d/51-wavexlr.conf](./files/cfg2/51-wavexlr.conf) file.
-
-For Wave 3: create [~/.config/wireplumber/wireplumber.conf.d/51-wave3.conf](./files/cfg2/51-wave3.conf) file.
-
-For Wave 1: create [~/.config/wireplumber/wireplumber.conf.d/51-wave1.conf](./files/cfg2/51-wave1.conf) file.
-
-For XLR Dock: create [~/.config/wireplumber/wireplumber.conf.d/51-xlrdock.conf](./files/cfg2/51-xlrdock.conf) file.
-
-The configuration sets the `node.always-process` property to `true` on the device source node (microphone input).
-
-##### Wireplumber 0.4
-
-Create the directory if it doesn't exist `~/.config/wireplumber/main.lua.d/`:
-```
-mkdir -p ~/.config/wireplumber/main.lua.d/
+mkdir -p ~/.local/share/wireplumber/scripts/
 ```
 
-For Wave XLR: create [~/.config/wireplumber/main.lua.d/51-wavexlr.lua](./files/cfg2/51-wavexlr.lua) file.
+Create the file [~/.local/share/wireplumber/scripts/virtual-sinks.lua](./files/virtual-sinks.lua).
 
-For Wave 3: create [~/.config/wireplumber/main.lua.d/51-wave3.lua](./files/cfg2/51-wave3.lua) file.
+At the beginning of the script, make sure `CONFIG_WAVE_DEVICE` matches your device. Uncomment only the appropriate line:
 
-For Wave 1: create [~/.config/wireplumber/main.lua.d/51-wave1.lua](./files/cfg2/51-wave1.lua) file.
+```lua
+CONFIG_WAVE_DEVICE = "WaveXLR Sink"
+-- CONFIG_WAVE_DEVICE = "Wave3 Sink"
+-- CONFIG_WAVE_DEVICE = "Wave1 Sink"
+-- CONFIG_WAVE_DEVICE = "XLRDock Sink"
+```
 
-For XLR Dock: create [~/.config/wireplumber/main.lua.d/51-xlrdock.lua](./files/cfg2/51-xlrdock.lua) file.
+You can also edit `CONFIG_SINKS` to add, remove, or rename the virtual outputs.
+
+##### Step 2. Configure WirePlumber to load the script.
+
+Create the file [~/.config/wireplumber/wireplumber.conf.d/52-virtual-sinks.conf](./files/52-virtual-sinks.conf).
+
+Restart WirePlumber to apply the configuration:
+
+```
+systemctl restart --user wireplumber
+```
+
+The **Music**, **Comms**, and **Game** outputs should now appear in your system's audio settings. Select the appropriate output for each application.
+
 
 #### Troubleshooting
 
-If the workaround fails, try restarting the wireplumber:
+If the configuration does not work as expected, try restarting WirePlumber:
 ```
 systemctl restart --user wireplumber
 ```
@@ -111,6 +106,9 @@ journalctl -u wireplumber --user --lines 30
 ```
 
 ## Changelog
+
+### 2026-10-16
+* Add script to configure virtual outputs. Remove "alternative" solution for mic issue. [#42](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/42)
 
 ### 2026-10-12
 * Waits for source to be running before creating the sink. [#38](https://github.com/jmansar/wavexlr-on-linux-cfg/pull/38)
