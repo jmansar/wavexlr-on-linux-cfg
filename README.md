@@ -1,4 +1,4 @@
-# Wave XLR on Linux
+# Wave XLR (and other) on Linux
 
 Unofficial instructions to fix issues with Wave XLR (also Wave 1, Wave 3 and XLR Dock) on Linux.
 
